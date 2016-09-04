@@ -1,0 +1,297 @@
+<!doctype html>
+<html>
+  <head>
+    <style>
+      body {
+        padding: 0;
+        width: 100%;
+        height: 100%;
+      }
+
+      .background {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+      }
+
+      .scene {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        margin: -192px 0 0 -192px;
+        width: 384px;
+        height: 384px;
+        background: rgba(100, 100, 255, 0.2);
+        -webkit-transform: rotateX(60deg) rotateZ(60deg);
+        transform-style: preserve-3d;
+        transform-origin: 50% 50% 50%;
+      }
+
+      .block {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 64px;
+        height: 64px;
+        transform-style: preserve-3d;
+        transform-origin: 50% 50% 50%;
+      }
+
+      .x-axis,
+      .y-axis,
+      .z-axis {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 66px;
+        height: 66px;
+        transform-origin: 50% 50% 50%;
+        pointer-events: none;
+      }
+
+      .x-axis {
+        /* border: solid 2px rgba(255, 0, 0, 0.3); */
+      }
+
+      .y-axis {
+        /* border: solid 2px rgba(0, 255, 0, 0.3); */
+      }
+
+      .z-axis {
+        /* border: solid 2px rgba(0, 0, 255, 0.3); */
+      }
+
+      .side {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 64px;
+        height: 64px;
+        backface-visibility: hidden;
+        outline: 1px solid rgba(0, 0, 0, 0.3);
+      }
+
+      .block:hover .side {
+        outline: 1px solid rgba(0, 255, 0, 0.5);
+      }
+
+      .ghost {
+        pointer-events: none;
+      }
+
+      .ghost .side {
+        opacity: 0.6;
+        pointer-events: none;
+        -webkit-filter: brightness(1.5);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="background"></div>
+    <div class="scene"></div>
+    <input type="hidden" class="rotate-x" value="60" />
+    <input type="hidden" class="rotate-y" />
+    <input type="hidden" class="rotate-z" value="60" />
+    <script src="jquery.3.1.0.slim.min.js"></script>
+    <script src="jquery.transit.0.9.12.min.js"></script>
+    <script src="block.js"></script>
+    <script src="block.dirt.js"></script>
+    <script>
+      Number.prototype.toInt = String.prototype.toInt = function() {
+        return parseInt(this, 10);
+      };
+
+      Array.prototype.random = function() {
+        return this[Math.floor(Math.random() * this.length)];
+      };
+
+      let first = new Block.Dirt(1, 1, 1);
+
+      const $scene = $(".scene");
+      const $body = $("body");
+
+      for (var x = 0; x < 6; x++) {
+        for (var y = 0; y < 6; y++) {
+          let next = new Block.Dirt(x, y, 0);
+          next.block.appendTo($scene);
+        }
+      }
+
+      var cx = null;
+      var cy = null;
+
+      var sx = 60;
+      var sy = 0;
+      var sz = 60;
+
+      var scale = 1;
+
+      $body.on("mousedown", function(e) {
+        cx = e.clientX / 10;
+        cy = e.clientY / 10;
+      });
+
+      $body.on("mousemove", function(e) {
+        if (!cx) {
+          return;
+        }
+
+        var nextX = e.clientX / 10;
+        var nextY = e.clientY / 10;
+
+        if (nextX !== cx) {
+          dx = nextX.toInt() - cx.toInt();
+          deg = $(".rotate-z").val().toInt() - dx;
+
+          if (deg > 360) {
+              deg -= 360;
+          }
+
+          if (deg < 0) {
+              deg += 360;
+          }
+
+          $(".rotate-z").val(deg).change();
+
+          cx = nextX;
+        }
+
+        if (nextY !== cy) {
+          dy = nextY.toInt() - cy.toInt();
+          deg = $(".rotate-x").val().toInt() - dy;
+
+          if (deg > 360) {
+              deg -= 360;
+          }
+
+          if (deg < 0) {
+              deg += 360;
+          }
+
+          $(".rotate-x").val(deg).change();
+
+          cy = nextY;
+        }
+      });
+
+      $body.on("mouseout", function(e) {
+        cx = null;
+        cy = null;
+      });
+
+      $body.on("mouseup", function(e) {
+        cx = null;
+        cy = null;
+      });
+
+      $(".rotate-x").on("change", function(e) {
+        sx = this.value;
+
+        $scene.css({
+          "transform": "rotateX(" + sx + "deg) rotateY(" + sy + "deg) rotateZ(" + sz + "deg) scaleX(" + scale + ") scaleY(" + scale + ") scaleZ(" + scale + ")"
+        });
+      });
+
+      $(".rotate-y").on("change", function(e) {
+        sy = this.value;
+
+        $scene.css({
+          "transform": "rotateX(" + sx + "deg) rotateY(" + sy + "deg) rotateZ(" + sz + "deg) scaleX(" + scale + ") scaleY(" + scale + ") scaleZ(" + scale + ")"
+        });
+      });
+
+      $(".rotate-z").on("change", function(e) {
+        sz = this.value;
+
+        $scene.css({
+          "transform": "rotateX(" + sx + "deg) rotateY(" + sy + "deg) rotateZ(" + sz + "deg) scaleX(" + scale + ") scaleY(" + scale + ") scaleZ(" + scale + ")"
+        });
+      });
+
+      function createCoordinatesFrom(side, x, y, z) {
+        if (side == "top") {
+          z += 1;
+        }
+
+        if (side == "side-1") {
+          y += 1;
+        }
+
+        if (side == "side-2") {
+          x += 1;
+        }
+
+        if (side == "side-3") {
+          y -= 1;
+        }
+
+        if (side == "side-4") {
+          x -= 1;
+        }
+
+        if (side == "bottom") {
+          z -= 1;
+        }
+
+        return [x, y, z];
+      }
+
+      $body.on("click", ".side", function(e) {
+        const $this = $(this);
+        const previous = $this.data("block");
+
+        const coordinates = createCoordinatesFrom(
+          $this.data("type"),
+          previous.x,
+          previous.y,
+          previous.z
+        );
+
+        const next = new Block.Dirt(...coordinates);
+
+        next.block.appendTo($scene);
+      });
+
+      let ghost = null;
+
+      function removeGhost() {
+        if (ghost) {
+          ghost.block.remove();
+          ghost = null;
+        }
+      }
+
+      function createGhostAt(x, y, z) {
+        const next = new Block.Dirt(x, y, z);
+
+        next.block
+          .addClass("ghost")
+          .appendTo($scene);
+
+        ghost = next;
+      }
+
+      $body.on("mouseenter", ".side", function(e) {
+        removeGhost();
+
+        const $this = jQuery(this);
+        const previous = $this.data("block");
+
+        const coordinates = createCoordinatesFrom(
+          $this.data("type"),
+          previous.x,
+          previous.y,
+          previous.z
+        );
+
+        createGhostAt(...coordinates);
+      });
+
+      $body.on("mouseleave", ".side", function(e) {
+        removeGhost()
+      });
+    </script>
+  </body>
+</html>
