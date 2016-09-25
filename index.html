@@ -77,6 +77,10 @@
         outline: 1px solid rgba(0, 255, 0, 0.5);
       }
 
+      .subtraction .block:hover .side {
+        outline: 1px solid rgba(255, 0, 0, 0.5);
+      }
+
       .ghost {
         pointer-events: none;
       }
@@ -86,15 +90,17 @@
         pointer-events: none;
         -webkit-filter: brightness(1.5);
       }
+
+      .subtraction .ghost {
+        display: none;
+      }
     </style>
   </head>
   <body>
     <div class="background"></div>
     <div class="scene"></div>
-    <input type="hidden" class="rotate-x" value="60" />
-    <input type="hidden" class="rotate-y" />
-    <input type="hidden" class="rotate-z" value="60" />
     <script src="jquery.3.1.0.slim.min.js"></script>
+    <script src="jquery.mousewheel.3.1.13.min.js"></script>
     <script src="jquery.transit.0.9.12.min.js"></script>
     <script src="block.js"></script>
     <script src="block.dirt.js"></script>
@@ -112,103 +118,12 @@
       const $scene = $(".scene");
       const $body = $("body");
 
-      for (var x = 0; x < 6; x++) {
-        for (var y = 0; y < 6; y++) {
+      for (let x = 0; x < 6; x++) {
+        for (let y = 0; y < 6; y++) {
           let next = new Block.Dirt(x, y, 0);
           next.block.appendTo($scene);
         }
       }
-
-      var cx = null;
-      var cy = null;
-
-      var sx = 60;
-      var sy = 0;
-      var sz = 60;
-
-      var scale = 1;
-
-      $body.on("mousedown", function(e) {
-        cx = e.clientX / 10;
-        cy = e.clientY / 10;
-      });
-
-      $body.on("mousemove", function(e) {
-        if (!cx) {
-          return;
-        }
-
-        var nextX = e.clientX / 10;
-        var nextY = e.clientY / 10;
-
-        if (nextX !== cx) {
-          dx = nextX.toInt() - cx.toInt();
-          deg = $(".rotate-z").val().toInt() - dx;
-
-          if (deg > 360) {
-              deg -= 360;
-          }
-
-          if (deg < 0) {
-              deg += 360;
-          }
-
-          $(".rotate-z").val(deg).change();
-
-          cx = nextX;
-        }
-
-        if (nextY !== cy) {
-          dy = nextY.toInt() - cy.toInt();
-          deg = $(".rotate-x").val().toInt() - dy;
-
-          if (deg > 360) {
-              deg -= 360;
-          }
-
-          if (deg < 0) {
-              deg += 360;
-          }
-
-          $(".rotate-x").val(deg).change();
-
-          cy = nextY;
-        }
-      });
-
-      $body.on("mouseout", function(e) {
-        cx = null;
-        cy = null;
-      });
-
-      $body.on("mouseup", function(e) {
-        cx = null;
-        cy = null;
-      });
-
-      $(".rotate-x").on("change", function(e) {
-        sx = this.value;
-
-        $scene.css({
-          "transform": "rotateX(" + sx + "deg) rotateY(" + sy + "deg) rotateZ(" + sz + "deg) scaleX(" + scale + ") scaleY(" + scale + ") scaleZ(" + scale + ")"
-        });
-      });
-
-      $(".rotate-y").on("change", function(e) {
-        sy = this.value;
-
-        $scene.css({
-          "transform": "rotateX(" + sx + "deg) rotateY(" + sy + "deg) rotateZ(" + sz + "deg) scaleX(" + scale + ") scaleY(" + scale + ") scaleZ(" + scale + ")"
-        });
-      });
-
-      $(".rotate-z").on("change", function(e) {
-        sz = this.value;
-
-        $scene.css({
-          "transform": "rotateX(" + sx + "deg) rotateY(" + sy + "deg) rotateZ(" + sz + "deg) scaleX(" + scale + ") scaleY(" + scale + ") scaleZ(" + scale + ")"
-        });
-      });
 
       function createCoordinatesFrom(side, x, y, z) {
         if (side == "top") {
@@ -242,16 +157,21 @@
         const $this = $(this);
         const previous = $this.data("block");
 
-        const coordinates = createCoordinatesFrom(
-          $this.data("type"),
-          previous.x,
-          previous.y,
-          previous.z
-        );
+        if ($body.hasClass("subtraction")) {
+          previous.block.remove();
+          previous = null;
+        } else {
+          const coordinates = createCoordinatesFrom(
+            $this.data("type"),
+            previous.x,
+            previous.y,
+            previous.z
+          );
 
-        const next = new Block.Dirt(...coordinates);
+          const next = new Block.Dirt(...coordinates);
 
-        next.block.appendTo($scene);
+          next.block.appendTo($scene);
+        }
       });
 
       let ghost = null;
@@ -291,6 +211,107 @@
 
       $body.on("mouseleave", ".side", function(e) {
         removeGhost()
+      });
+
+      let lastMouseX = null;
+      let lastMouseY = null;
+
+      let sceneTransformX = 60;
+      let sceneTransformY = 0;
+      let sceneTransformZ = 60;
+      let sceneTransformScale = 1;
+
+      $body.on("mousewheel", function(event) {
+        if (event.deltaY > 0) {
+          sceneTransformScale -= 0.05;
+        } else {
+          sceneTransformScale += 0.05;
+        }
+
+        changeViewport();
+      });
+
+      $body.on("mousedown", function(e) {
+        lastMouseX = e.clientX / 10;
+        lastMouseY = e.clientY / 10;
+      });
+
+      $body.on("mousemove", function(e) {
+        if (!lastMouseX) {
+          return;
+        }
+
+        let nextMouseX = e.clientX / 10;
+        let nextMouseY = e.clientY / 10;
+
+        if (nextMouseX !== lastMouseX) {
+          let deltaX = nextMouseX.toInt() - lastMouseX.toInt();
+          degrees = sceneTransformZ - deltaX;
+
+          if (degrees > 360) {
+              degrees -= 360;
+          }
+
+          if (degrees < 0) {
+              degrees += 360;
+          }
+
+          sceneTransformZ = degrees;
+          lastMouseX = nextMouseX;
+
+          changeViewport();
+        }
+
+        if (nextMouseY !== lastMouseY) {
+          let deltaY = nextMouseY.toInt() - lastMouseY.toInt();
+          degrees = sceneTransformX - deltaY;
+
+          if (degrees > 360) {
+              degrees -= 360;
+          }
+
+          if (degrees < 0) {
+              degrees += 360;
+          }
+
+          sceneTransformX = degrees;
+          lastMouseY = nextMouseY;
+
+          changeViewport();
+        }
+      });
+
+      $body.on("mouseout", function(e) {
+        lastMouseX = null;
+        lastMouseY = null;
+      });
+
+      $body.on("mouseup", function(e) {
+        lastMouseX = null;
+        lastMouseY = null;
+      });
+
+      function changeViewport() {
+        $scene.css({
+          "transform": `
+            rotateX(${sceneTransformX}deg)
+            rotateY(${sceneTransformY}deg)
+            rotateZ(${sceneTransformZ}deg)
+            scaleX(${sceneTransformScale})
+            scaleY(${sceneTransformScale})
+            scaleZ(${sceneTransformScale})
+          `
+        });
+      };
+
+      $body.on("keydown", function(e) {
+        if (e.altKey) {
+          $body.addClass("subtraction");
+        }
+      });
+
+      $body.on("keyup", function(e) {
+        $body.removeClass("subtraction");
       });
     </script>
   </body>
