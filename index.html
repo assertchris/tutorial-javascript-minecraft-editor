@@ -2,10 +2,12 @@
 <html>
   <head>
     <style>
-      body {
+      html, body {
         padding: 0;
+        margin: 0;
         width: 100%;
         height: 100%;
+        overflow: hidden;
       }
 
       .background {
@@ -222,13 +224,17 @@
       let sceneTransformScale = 1;
 
       $body.on("mousewheel", function(event) {
-        if (event.deltaY > 0) {
+        if (event.originalEvent.deltaY > 0) {
           sceneTransformScale -= 0.05;
         } else {
           sceneTransformScale += 0.05;
         }
 
         changeViewport();
+      });
+
+      $scene.on("mousedown", function(e) {
+        e.stopPropagation();
       });
 
       $body.on("mousedown", function(e) {
@@ -279,11 +285,6 @@
 
           changeViewport();
         }
-      });
-
-      $body.on("mouseout", function(e) {
-        lastMouseX = null;
-        lastMouseY = null;
       });
 
       $body.on("mouseup", function(e) {
